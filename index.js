@@ -1,5 +1,6 @@
 const express = require('express');
 const { MongoClient } = require('mongodb');
+const ObjectId = require('mongodb').ObjectId;
 
 const cors = require('cors');
 require('dotenv').config();
@@ -20,22 +21,113 @@ async function run(){
         await client.connect();
         const database = client.db('factoryAve');
         const productCollection = database.collection('products');
+        const userCollection = database.collection('users');
+        const orderCollection = database.collection('orders');
+        const reviewCollection = database.collection('reviews');
 
-        // POST API
-        //     app.post('/services', async(req, res) => {
-        //         const service = {
-        //             "price": "1,501", "name":"235 S Avenue 20 3 Ave","description":"If you are looking for a place to buy or rent, we know what to offer you. Taking into consideration all your demands and wishes we will find you are going to find a place for loud parties you are going an ideal solution: neighbors, area, number of rooms, floor, condo or house - individual approach to each client is our main principle.","img":"https://ld-prestashop.template-help.com/prestashop_eze_255/img/p/2/5/25-home_default.jpg"
-        //         }
 
-        //         const result = await servicesCollection.insertOne(service);
-        //     })
+        // Post Add Products
+        app.post('/addproducts', async (req, res) => {
+            const products = req.body;
+            const result = await productCollection.insertOne(products)
+            console.log(result);
+            res.json(result)
+        })
+
+        // Post User 
+        app.post('/users', async (req, res) => {
+            const user = req.body;
+            const result = await userCollection.insertOne(user)
+            console.log(result);
+            res.json(result)
+        })
+
+        //Post Orders
+        app.post('/orders', async (req, res) => {
+            const data= req.body;
+            const result = await orderCollection.insertOne(data)
+            res.json(result);
+        });
+        
+        // Post Reviews
+        app.post('/reviews', async (req, res) => {
+            const review = req.body;
+            const result = await reviewCollection.insertOne(review)
+            console.log(result)
+            res.json(result);
+        })
+
+        // Get Orders
+        app.get('/orders', async(req, res) => {
+            const cursor = orderCollection.find({});
+            const orders = await cursor.toArray();
+            res.json(orders);
+        });
+
+        // Get Eamil
+        app.get('/emailorder',async (req,res)=>{
+            const email = req.query.email;
+            const query = {email:email}
+            const cursor = orderCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result)
+        })
+
+        //Get All Order 
+        app.get('/allorder',async (req,res)=>{
+            const cursor = orderCollection.find({});
+            const result = await cursor.toArray();
+            res.send(result)
+
+        })
+
+        // Get Reviews
+        app.get('/reviews', async (req, res)=> {
+            const cursor = reviewCollection.find({});
+            const result = await cursor.toArray();
+            console.log(result);
+            res.send(result);
+        })
+
+        // Make admin
+
+        app.put('/user/admin',async (req,res)=>{
+            const user = req.body;
+            const filter = {email:user.email};
+            const updateDoc = {$set: {role:'admin'}}
+            const result = await userCollection.updateOne(filter,updateDoc);
+            res.json(result);
+
+        })
+
+        // Get user Email
+        app.get('/user/:email',async(req,res)=>{
+            const email = req.params.email;
+            const query = {email:email};
+            const user = await userCollection.findOne(query); 
+            let isAdmin = false;
+            if(user?.role === 'admin'){
+                isAdmin= true;
+            }
+            res.json({admin:isAdmin}); 
+        })
 
         // GET Products API
         app.get('/products', async(req, res) => {
             const cursor = productCollection.find({});
             const products = await cursor.toArray();
             res.send(products);
+        });
+
+        // Get Service
+        app.get('/products/:id', async(req, res) => {
+            const id = req.params.id;
+            console.log('getting startted' , id);
+            const query = {_id: ObjectId(id)};
+            const product = await productCollection.findOne(query);
+            res.json(product);
         })
+        
     }
     finally{
         // await client.close();
